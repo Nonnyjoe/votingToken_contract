@@ -1,0 +1,1 @@
+module.exports =[100000000000, "NONSO INU", "NNS"];
