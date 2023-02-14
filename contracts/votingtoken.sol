@@ -16,6 +16,7 @@ address admin;
 address[] contendersContainer;
 uint[] public vottingPools;
 uint[] results;
+userResult[] userResults;
 uint price = 300 gwei;
 uint public voteprice = 50;
 uint public PoolCreationPrice = 200;
@@ -37,6 +38,18 @@ function withdraw(uint _amount) public _onlyadmin(msg.sender) {
     payable(msg.sender).transfer(_amount * 1000000000000000000);
 }
 
+function voteResult(uint _voteId) public returns(userResult[] memory _result){
+    address[] memory Result = contendersList[_voteId];
+for (uint i = 0; i < Result.length; i++){
+    userResult memory _con = userResult({
+    _address: Result[i],
+    _totalPoints: pointCount[_voteId][Result[i]]
+    });
+    userResults.push(_con);
+}
+_result = userResults;
+}
+
 
 function PurchaseToken() payable public {
   uint purchase=  msg.value / price;
@@ -44,22 +57,20 @@ function PurchaseToken() payable public {
 }
 
 
-function createVotePool2(address _contender1, address _contender2, address _contender3) noRepeat( _contender1, _contender2, _contender3) public returns (uint yourVoteId){
-   require(balanceOf(msg.sender) >= PoolCreationPrice, "INSUFFICIENT FUND, BUY OUR TOKEN");
-   transfer(address(this), PoolCreationPrice);
-   vottingPools.push(voteId);
-    voteStatus[voteId] = true;
-    contendersContainer.push(_contender1);
-    contendersContainer.push(_contender2);
-    contendersContainer.push(_contender3);
-    contendersList[voteId] = contendersContainer;
-    contendersContainer.pop();
-    contendersContainer.pop();
-    contendersContainer.pop();
-    votingAdmin[voteId] = msg.sender;
-    yourVoteId = voteId;
-    emit poolId (uint32(voteId), "is your vote Id");
-    voteId++;
+function createVotePool2(uint _id,address _contender1, address _contender2, address _contender3) isValidId(_id) noRepeat( _contender1, _contender2, _contender3) public returns (uint yourVoteId){
+    require(balanceOf(msg.sender) >= PoolCreationPrice, "INSUFFICIENT FUND, BUY OUR TOKEN");
+    _burn(msg.sender, PoolCreationPrice);
+    vottingPools.push(_id);
+     voteStatus[_id] = true;
+     contendersContainer.push(_contender1);
+     contendersContainer.push(_contender2);
+     contendersContainer.push(_contender3);
+     contendersList[_id] = contendersContainer;
+     contendersContainer.pop();
+     contendersContainer.pop();
+     contendersContainer.pop();
+     votingAdmin[_id] = msg.sender;
+     yourVoteId = _id;
 }
 
 function DisplayContenders(uint _voteId) view public returns(address[] memory contenders) {
@@ -80,9 +91,8 @@ function DisplayTotalVotes(uint _voteId) public view returns (uint TotalPoints){
 }
 
 function Vote(uint _voteId, address _contender1, address _contender2, address _contender3) noRepeat( _contender1, _contender2, _contender3) public { //norepeat
-    require(balanceOf(msg.sender) >= voteprice, "INSUFFICIENT FUND, BUY OUR TOKEN");
-   transfer(address(this), voteprice);
-
+     require(balanceOf(msg.sender) >= voteprice, "INSUFFICIENT FUND, BUY OUR TOKEN");
+   _burn(msg.sender, voteprice);
     require (voteStatus[_voteId], "Voting closed");
     bool status = voteCheck[msg.sender][_voteId];
     require(!status, "Already Voted");
@@ -98,6 +108,7 @@ function pointAssigner(uint _voteId, address _contender1, address _contender2, a
 }
 
 function closeVotingPool(uint _voteId) public {
+    require(msg.sender == votingAdmin[_voteId], "Only admin can close voting pool");
     voteStatus[_voteId] = false;
 }
 
@@ -133,6 +144,19 @@ modifier noRepeat(address _contenders1, address _contenders2, address _contender
 
 modifier _onlyadmin(address _address){
     require(_address == admin, "Not Admin");
+    _;
+}
+
+modifier isValidId(uint _id) {
+    bool status;
+    uint[] memory _votingPools = vottingPools;
+    uint size = _votingPools.length;
+    for (uint i = 0; i < size; i++){
+        if (_id == vottingPools[i]){
+            status = true;
+        }
+    }
+    require(!status, "ID ALREADY USED");
     _;
 }
 }
